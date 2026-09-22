@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { randomUUID } from "node:crypto";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -35,6 +36,21 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  const localSessions = new Map<string, { session_id: string; title: string | null; task_mode: "agent" | "chat"; events: unknown[] }>();
+  app.put("/api/v1/sessions", (_req, res) => {
+    const session_id = randomUUID();
+    localSessions.set(session_id, { session_id, title: null, task_mode: "agent", events: [] });
+    res.json({ code: 0, msg: "success", data: { session_id } });
+  });
+  app.get("/api/v1/sessions", (_req, res) => {
+    const sessions = Array.from(localSessions.values()).map((session) => ({ ...session, status: "completed", latest_message: session.title, latest_message_at: Date.now(), unread_message_count: 0, is_shared: false, is_favorite: false, is_pinned: false, project_id: null }));
+    res.json({ code: 0, msg: "success", data: { sessions } });
+  });
+  app.get("/api/v1/sessions/:sessionId", (req, res) => {
+    const session = localSessions.get(req.params.sessionId);
+    if (!session) return res.status(404).json({ code: 404, msg: "Session not found" });
+    res.json({ code: 0, msg: "success", data: { ...session, status: "completed", is_shared: false, is_favorite: false, is_pinned: false, project_id: null } });
+  });
   app.get("/api/config/frontend", (_req, res) => {
     res.json({ data: { auth_provider: "none", show_github_button: true, github_repository_url: "https://github.com/Simpleyyt/ai-manus", google_analytics_id: null } });
   });

@@ -195,6 +195,32 @@ export const chatWithSession = async (
   callbacks?: ChatStreamCallbacks,
   requiredSkills?: RequiredSkillRef[],
 ): Promise<() => void> => {
+  if (BASE_URL === '/api/v1') {
+    let cancelled = false;
+    callbacks?.onOpen?.();
+    if (message || (attachments && attachments.length > 0)) {
+      const now = Math.floor(Date.now() / 1000);
+      callbacks?.onMessage?.({ event: 'message', data: { event_id: `${sessionId}-user-${now}`, timestamp: now, role: 'user', content: message, attachments: [], required_skills: requiredSkills } });
+      try {
+        const response = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+        const payload = await response.json() as { answer?: string; error?: string };
+        if (!response.ok) throw new Error(payload.error || 'AI request failed');
+        if (!cancelled) {
+          callbacks?.onMessage?.({ event: 'message', data: { event_id: `${sessionId}-assistant-${Date.now()}`, timestamp: Math.floor(Date.now() / 1000), role: 'assistant', content: payload.answer || '', attachments: [] } });
+          callbacks?.onClose?.();
+        }
+      } catch (error) {
+        if (!cancelled) callbacks?.onError?.(error instanceof Error ? error : new Error('AI request failed'));
+      }
+    } else {
+      callbacks?.onClose?.();
+    }
+    return () => { cancelled = true; };
+  }
   const { getChatWebSocket } = await import('./chatWs');
   const ws = getChatWebSocket();
 
@@ -236,6 +262,7 @@ export const chatWithSession = async (
 
 /** Leave chat session subscription (switch away). */
 export async function leaveChatSession(sessionId: string): Promise<void> {
+  if (BASE_URL === '/api/v1') return;
   const { getChatWebSocket } = await import('./chatWs');
   const ws = getChatWebSocket();
   ws.clearHandlers(sessionId);
