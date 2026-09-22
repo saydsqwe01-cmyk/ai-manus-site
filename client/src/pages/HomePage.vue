@@ -230,9 +230,9 @@ const handleSubmit = async (requiredSkills: { id: string; name: string }[] = [])
     isSubmitting.value = true;
 
     try {
+      const session = await createSession();
       router.push({
-        path: '/guest-chat',
-        query: { message: message.value },
+        path: `/chat/${session.session_id}`,
         state: {
           message: message.value,
           taskMode: taskMode.value,

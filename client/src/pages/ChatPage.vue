@@ -13,7 +13,7 @@
               :aria-expanded="showModeMenu"
               aria-haspopup="menu"
               @click="toggleModeMenu">
-              <span class="text-[var(--text-primary)] md:text-[18px] text-[16px] font-[500] md:leading-[22px] leading-[20px] truncate">Manus</span>
+              <span class="text-[var(--text-primary)] md:text-[18px] text-[16px] font-[600] md:leading-[22px] leading-[20px] truncate">Marole AI</span>
               <span
                 v-if="taskMode === 'chat'"
                 class="text-[var(--text-tertiary)] text-xs flex h-5 py-0.5 px-1.5 items-center rounded-[6px] border border-[var(--border-dark)] flex-shrink-0">
@@ -986,4 +986,3 @@ const handleMoreClick = async (event: MouseEvent | KeyboardEvent) => {
   });
 }
 </script>
-
