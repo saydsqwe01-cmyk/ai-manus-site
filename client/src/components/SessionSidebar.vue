@@ -10,17 +10,15 @@
         :class="isSessionSidebarShow ? 'pe-[10px] ps-[12px]' : 'px-[8px]'">
         <div class="flex gap-0.5 items-center min-w-0" :class="isSessionSidebarShow ? 'clickable' : ''">
           <template v-if="isSessionSidebarShow">
-            <div class="flex items-center justify-center flex-shrink-0">
-              <Bot :size="28" class="text-[var(--icon-primary)]" />
-            </div>
-            <ManusLogoTextIcon :width="64.8" :height="28" />
+            <img :src="maroleLogo" alt="Marole AI" class="size-7 rounded-lg object-contain shadow-[0_4px_12px_rgba(0,212,170,.18)]" />
+            <span class="ms-2 text-[18px] font-semibold tracking-[-.02em] text-[var(--text-primary)]">Marole AI</span>
           </template>
           <template v-else>
             <div
               class="group flex items-center justify-center flex-shrink-0 size-[32px] mx-[2px] cursor-pointer rounded-md hover:bg-[var(--fill-tsp-gray-main)]"
               :title="t('Expand sidebar')"
               @click="toggleSessionSidebar">
-              <Bot :size="28" class="text-[var(--icon-primary)] group-hover:hidden" />
+              <img :src="maroleLogo" alt="Marole AI" class="size-7 rounded-lg object-contain group-hover:hidden" />
               <PanelLeft class="h-[18px] w-[18px] text-[var(--icon-secondary)] hidden group-hover:block" />
             </div>
           </template>
@@ -426,7 +424,6 @@ import {
 import SessionItem from './SessionItem.vue';
 import UserMenu from './UserMenu.vue';
 import SearchDialog from './SearchDialog.vue';
-import ManusLogoTextIcon from './icons/ManusLogoTextIcon.vue';
 import { useSessionSidebar } from '../composables/useSessionSidebar';
 import { useAuth } from '../composables/useAuth';
 import { useDialog } from '../composables/useDialog';
@@ -443,6 +440,7 @@ import { eventBus } from '../utils/eventBus';
 type TaskFilter = 'all' | 'favorites' | 'shared' | 'noProject'
 
 const { t } = useI18n()
+const maroleLogo = '/manus-storage/marole-ai-logo_2ef1c0a1.png'
 const { isSessionSidebarShow, toggleSessionSidebar } = useSessionSidebar()
 const { showInputDialog, showConfirmDialog } = useDialog()
 const { showContextMenu } = useContextMenu()

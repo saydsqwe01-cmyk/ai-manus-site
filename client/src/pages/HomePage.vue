@@ -2,7 +2,7 @@
   <SimpleBar>
     <div
       class="flex flex-col h-full flex-1 min-w-0 mx-auto w-full sm:min-w-[390px] px-5 justify-center items-start gap-2 relative max-w-full sm:max-w-full">
-      <!-- Top header — same Manus / Agent·Lite switcher chrome as ChatPage -->
+      <!-- Marole AI / Agent·Lite switcher chrome -->
       <div class="w-[calc(100%+40px)] -mx-5 bg-[var(--background-gray-main)] sticky top-0 z-10 ps-[14px] pe-[20px] py-[12px] border-b border-transparent">
         <div class="flex justify-between items-center w-full">
           <div class="relative z-20 items-center flex-shrink-0 flex">
@@ -13,7 +13,7 @@
                 :aria-expanded="showModeMenu"
                 aria-haspopup="menu"
                 @click="toggleModeMenu">
-                <span class="text-[var(--text-primary)] md:text-[18px] text-[16px] font-[500] md:leading-[22px] leading-[20px] truncate">Manus</span>
+                <span class="text-[var(--text-primary)] md:text-[18px] text-[16px] font-[600] md:leading-[22px] leading-[20px] truncate">Marole AI</span>
                 <span
                   v-if="taskMode === 'chat'"
                   class="text-[var(--text-tertiary)] text-xs flex h-5 py-0.5 px-1.5 items-center rounded-[6px] border border-[var(--border-dark)] flex-shrink-0">
