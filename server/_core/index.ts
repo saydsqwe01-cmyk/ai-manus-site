@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
+import { invokeLLM } from "./llm";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -34,6 +35,37 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.get("/api/config/frontend", (_req, res) => {
+    res.json({ data: { auth_provider: "none", show_github_button: true, github_repository_url: "https://github.com/Simpleyyt/ai-manus", google_analytics_id: null } });
+  });
+  app.post("/api/ai/chat", async (req, res) => {
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!message) return res.status(400).json({ error: "Message is required" });
+    const apiKey = process.env.NVIDIA_API_KEY;
+    const model = process.env.NVIDIA_MODEL || "mistralai/mistral-nemotron";
+    const fallback = async () => {
+      const response = await invokeLLM({ messages: [{ role: "user", content: message }], maxTokens: 4096 });
+      return typeof response.choices?.[0]?.message?.content === "string" ? response.choices[0].message.content : "";
+    };
+    try {
+      if (!apiKey) return res.json({ answer: await fallback() });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8_000);
+      const upstream = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST", headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ model, messages: [{ role: "user", content: message }], temperature: 0.6, top_p: 0.7, max_tokens: 4096, stream: false }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const payload = await upstream.json() as any;
+      if (!upstream.ok) return res.json({ answer: await fallback() });
+      return res.json({ answer: payload?.choices?.[0]?.message?.content || "" });
+    } catch (error) {
+      console.error("[AI] Provider request failed", error);
+      try { return res.json({ answer: await fallback() }); }
+      catch { return res.status(502).json({ error: "AI provider is temporarily unavailable" }); }
+    }
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
