@@ -71,12 +71,25 @@ export function useAgentEvents(state: AgentEventState, options: AgentEventOption
       return;
     }
 
-    messages.value.push({
-      type: messageData.role,
-      content: {
-        ...messageData
-      } as MessageContent,
-    });
+    if (messageData.role === 'assistant') {
+      const animated = { ...messageData, content: '' } as MessageContent;
+      messages.value.push({ type: 'assistant', content: animated });
+      let index = 0;
+      const timer = window.setInterval(() => {
+        const target = messages.value[messages.value.length - 1];
+        if (!target || target.type !== 'assistant' || target.content !== animated) {
+          window.clearInterval(timer);
+          return;
+        }
+        animated.content = messageData.content.slice(0, index += 2);
+        if (index >= messageData.content.length) window.clearInterval(timer);
+      }, 14);
+    } else {
+      messages.value.push({
+        type: messageData.role,
+        content: { ...messageData } as MessageContent,
+      });
+    }
 
     if (messageData.attachments && messageData.attachments.length > 0) {
       messages.value.push({
