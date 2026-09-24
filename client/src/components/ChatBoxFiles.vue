@@ -94,6 +94,7 @@
     </div>
     <!-- Hidden file input -->
     <input ref="fileInput" type="file" multiple class="hidden" @change="handleFileSelect" />
+    <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handleFileSelect" />
 </template>
 
 <script setup lang="ts">
@@ -129,6 +130,7 @@ const { showFilePreviewer } = useFilePreviewer();
 
 const files = computed(() => props.attachments);
 const fileInput = ref<HTMLInputElement>();
+const cameraInput = ref<HTMLInputElement>();
 const scrollContainer = ref<HTMLElement>();
 
 const canScrollLeft = ref(false);
@@ -148,6 +150,11 @@ const revokePreview = (file: ExtendedFileInfo) => {
 const uploadFile = () => {
     fileInput.value?.click();
 };
+
+const openCamera = () => {
+    cameraInput.value?.click();
+};
+
 
 const setFiles = (value: ExtendedFileInfo[]) => {
     emit('update:attachments', value);
@@ -311,6 +318,7 @@ const handleFileClick = (file: ExtendedFileInfo) => {
 
 defineExpose({
     uploadFile,
+    openCamera,
     isAllUploaded
 });
 </script>

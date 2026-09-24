@@ -11,23 +11,41 @@ export type ChatStreamCallbacks = {
   onStatusUpdate?: (agentStatus: AgentStatus) => void;
   onClose?: () => void;
   onError?: (error: Error) => void;
+};
+const localEventsKey = (sessionId: string) => `marole-session-events:${sessionId}`;
+const readLocalEvents = (sessionId: string): AgentEvent[] => {
+  try { return JSON.parse(localStorage.getItem(localEventsKey(sessionId)) || '[]') as AgentEvent[]; } catch { return []; }
+};
+const appendLocalEvent = (sessionId: string, event: AgentEvent) => {
+  try { localStorage.setItem(localEventsKey(sessionId), JSON.stringify([...readLocalEvents(sessionId), event])); } catch { /* storage unavailable */ }
 };/**
  * Create Session
  * @returns Session
  */
 export async function createSession(): Promise<CreateSessionResponse> {
   const response = await apiClient.put<ApiResponse<CreateSessionResponse>>('/sessions');
+  try {
+    const sessions = JSON.parse(localStorage.getItem('marole-local-sessions') || '[]') as CreateSessionResponse[];
+    localStorage.setItem('marole-local-sessions', JSON.stringify([{ ...response.data.data }, ...sessions.filter(item => item.session_id !== response.data.data.session_id)].slice(0, 50)));
+  } catch { /* storage unavailable */ }
   return response.data.data;
 }
 
 export async function getSession(sessionId: string): Promise<GetSessionResponse> {
   const response = await apiClient.get<ApiResponse<GetSessionResponse>>(`/sessions/${sessionId}`);
-  return response.data.data;
+  const session = response.data.data;
+  const localEvents = readLocalEvents(sessionId);
+  return localEvents.length ? { ...session, events: [...session.events, ...localEvents] } : session;
 }
 
 export async function getSessions(): Promise<ListSessionResponse> {
   const response = await apiClient.get<ApiResponse<ListSessionResponse>>('/sessions');
-  return response.data.data;
+  const remote = response.data.data;
+  try {
+    const local = JSON.parse(localStorage.getItem('marole-local-sessions') || '[]') as ListSessionItem[];
+    const known = new Set(remote.sessions.map(item => item.session_id));
+    return { sessions: [...remote.sessions, ...local.filter(item => !known.has(item.session_id))] };
+  } catch { return remote; }
 }
 
 /** Session list realtime WS. */
@@ -200,23 +218,27 @@ export const chatWithSession = async (
     callbacks?.onOpen?.();
     if (message || (attachments && attachments.length > 0)) {
       const now = Math.floor(Date.now() / 1000);
-      callbacks?.onMessage?.({ event: 'message', data: { event_id: `${sessionId}-user-${now}`, timestamp: now, role: 'user', content: message, attachments: [], required_skills: requiredSkills } });
+      appendLocalEvent(sessionId, { event: 'message', data: { event_id: `${sessionId}-user-${now}`, timestamp: now, role: 'user', content: message, attachments: [], required_skills: requiredSkills } } as AgentEvent);
       try {
         const response = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ message, model: localStorage.getItem('marole-selected-model') || 'auto' }),
         });
         const payload = await response.json() as { answer?: string; error?: string };
         if (!response.ok) throw new Error(payload.error || 'AI request failed');
         if (!cancelled) {
-          callbacks?.onMessage?.({ event: 'message', data: { event_id: `${sessionId}-assistant-${Date.now()}`, timestamp: Math.floor(Date.now() / 1000), role: 'assistant', content: payload.answer || '', attachments: [] } });
-          callbacks?.onClose?.();
+          const assistantEvent = { event: 'message', data: { event_id: `${sessionId}-assistant-${Date.now()}`, timestamp: Math.floor(Date.now() / 1000), role: 'assistant', content: payload.answer || '', attachments: [] } } as AgentEvent;
+          appendLocalEvent(sessionId, assistantEvent);
+          callbacks?.onMessage?.({ event: 'message', data: assistantEvent.data });
+          callbacks?.onStatusUpdate?.('completed');
+          setTimeout(() => { if (!cancelled) callbacks?.onClose?.(); }, 0);
         }
       } catch (error) {
         if (!cancelled) callbacks?.onError?.(error instanceof Error ? error : new Error('AI request failed'));
       }
     } else {
+      callbacks?.onStatusUpdate?.('completed');
       callbacks?.onClose?.();
     }
     return () => { cancelled = true; };

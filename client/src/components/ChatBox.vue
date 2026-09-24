@@ -23,6 +23,8 @@
             :open="showPlusMenu"
             :position-style="plusMenuPositionStyle"
             @add-local-files="runAddLocalFiles"
+            @camera="runCamera"
+            @select-model="selectModel"
             @select-skill="insertSkillTag"
             @add-skill="handlePlusAddSkill"
             @manage-skills="handlePlusManageSkills"
@@ -172,6 +174,16 @@ const runAddLocalFiles = () => {
   showPlusMenu.value = false
   slashMenuOpen.value = false
   uploadFile()
+}
+
+const runCamera = () => {
+  showPlusMenu.value = false
+  slashMenuOpen.value = false
+  chatBoxFileListRef.value?.openCamera()
+}
+
+const selectModel = (model: string) => {
+  localStorage.setItem('marole-selected-model', model)
 }
 
 const insertSkillTag = (skill: { id: string; name: string; description?: string; owner_type?: string }) => {
